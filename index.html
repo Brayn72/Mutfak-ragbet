@@ -1,9 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rağbet Mutfak Sistemi</title>
+    <title>Rağbet Mutfak (YÜKSEK SESLİ)</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body { background-color: #f0f2f5; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
@@ -14,7 +15,7 @@
         .dev-buton {
             width: 300px; height: 300px;
             font-size: 3rem; font-weight: bold;
-            border-radius: 50%; /* Yuvarlak buton */
+            border-radius: 50%;
             border: 10px solid #c3e6cb;
             background-color: #28a745; color: white;
             box-shadow: 0 10px 25px rgba(40, 167, 69, 0.5);
@@ -28,20 +29,28 @@
         .bildirim-satiri {
             background: white; padding: 20px;
             margin-bottom: 15px; border-radius: 10px;
-            border-left: 7px solid #007bff;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            border-left: 10px solid #dc3545; /* Kırmızı uyarı çubuğu */
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
             display: flex; justify-content: space-between; align-items: center;
-            font-size: 1.5rem;
+            font-size: 1.8rem; /* Yazılar daha büyük */
+            font-weight: bold;
             animation: slideIn 0.5s ease-out;
         }
-        .yeni-gelen { background-color: #e7f1ff; border-left-color: #28a745; font-weight: bold; }
+        .yeni-gelen { 
+            background-color: #ffe6e6; /* Yeni gelince kırmızımsı yanar */
+            animation: flash 1s infinite alternate; 
+        }
         
         @keyframes slideIn {
             from { opacity: 0; transform: translateY(-20px); }
             to { opacity: 1; transform: translateY(0); }
         }
+        @keyframes flash {
+            from { border-left-color: #dc3545; }
+            to { border-left-color: #ffc107; }
+        }
         
-        .saat-bilgisi { font-size: 1.1rem; color: #6c757d; }
+        .saat-bilgisi { font-size: 1.3rem; color: #6c757d; }
     </style>
 </head>
 <body>
@@ -53,7 +62,7 @@
                 <button onclick="ekranDegistir('mutfak')" class="btn btn-success btn-lg w-100 py-5 fs-2">🍳 MUTFAK GİRİŞİ</button>
             </div>
             <div class="col-md-5">
-                <button onclick="ekranDegistir('garson')" class="btn btn-primary btn-lg w-100 py-5 fs-2">💻 GARSON EKRANI</button>
+                <button onclick="ekranDegistir('garson')" class="btn btn-danger btn-lg w-100 py-5 fs-2">💻 GARSON EKRANI</button>
             </div>
         </div>
     </div>
@@ -69,23 +78,21 @@
     </div>
 
     <div id="garson-ekrani" class="container ekran">
-        <div class="alert alert-info text-center cursor-pointer" id="ses-izni-btn" onclick="sesiAktifEt()">
-            🔊 Sesi açmak için lütfen buraya tıklayın (Mecburi)
+        <div class="alert alert-danger text-center cursor-pointer p-4 fs-4 fw-bold" id="ses-izni-btn" onclick="sesiAktifEt()">
+            🔊 SESİ AÇMAK İÇİN BURAYA TIKLAYIN (ZORUNLU)
         </div>
 
         <h3 class="mb-4 border-bottom pb-2">Son Çağrılar</h3>
         <div id="bildirim-listesi">
-            <div class="text-center text-muted mt-5" id="bos-mesaj">Henüz çağrı yok...</div>
+            <div class="text-center text-muted mt-5 fs-4" id="bos-mesaj">Henüz çağrı yok...</div>
         </div>
         <button onclick="location.reload()" class="btn btn-secondary mt-5">Çıkış</button>
     </div>
 
     <script type="module">
-        // Firebase kütüphanelerini import ediyoruz
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getDatabase, ref, push, onChildAdded, query, limitToLast } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-        // SENİN VERDİĞİN CONFIG BİLGİLERİ (Doğrudan Yerleştirildi)
         const firebaseConfig = {
           apiKey: "AIzaSyAFSTlydF-rsz0ukofoBSsXL0OTK2r3SG4",
           authDomain: "ragbet-mutfak.firebaseapp.com",
@@ -96,71 +103,60 @@
           measurementId: "G-6SL6EE933E"
         };
 
-        // Firebase Başlatma
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
         const cagriRef = ref(db, 'cagrilar');
 
-        // --- MUTFAK: Butona basınca çalışır ---
         window.cagriGonder = function() {
             const simdi = new Date();
             const saatDakika = simdi.getHours().toString().padStart(2, '0') + ":" + simdi.getMinutes().toString().padStart(2, '0');
             
-            // Veritabanına gönder
             push(cagriRef, {
                 mesaj: "Yemek Hazır",
                 saat: saatDakika,
                 timestamp: Date.now()
             });
 
-            // Mutfaktaki kişi bastığını anlasın diye butonu hafif titretelim/küçültelim
             const btn = document.querySelector('.dev-buton');
             btn.style.transform = "scale(0.9)";
             setTimeout(() => btn.style.transform = "scale(1)", 100);
         }
 
-        // --- GARSON: Dinleme Modu ---
         window.garsonDinle = function() {
-            // Son 10 çağrıyı getir
             const sonCagrilar = query(cagriRef, limitToLast(10));
 
             onChildAdded(sonCagrilar, (snapshot) => {
                 const data = snapshot.val();
                 
-                // "Henüz çağrı yok" yazısını kaldır
                 const bosMesaj = document.getElementById('bos-mesaj');
                 if(bosMesaj) bosMesaj.style.display = 'none';
 
                 const liste = document.getElementById('bildirim-listesi');
                 
-                // Yeni satır oluştur
                 const satir = document.createElement('div');
                 satir.className = 'bildirim-satiri yeni-gelen';
                 satir.innerHTML = `
-                    <span>🍽️ YEMEK HAZIR</span>
+                    <span>🍽️ YEMEK HAZIR!</span>
                     <span class="saat-bilgisi">${data.saat}</span>
                 `;
                 
-                // En üste ekle (prepend)
                 liste.insertBefore(satir, liste.firstChild);
 
-                // Sadece son 10 saniye içinde gelen veriler için ses çal
-                // (Eski veriler için sayfa yenilenince ses çalmasın diye)
+                // Son 10 saniye kontrolü (Eskiler için ötmesin)
                 if (Date.now() - data.timestamp < 10000) {
-                    tekBipSesi();
+                    gucluSesCal();
                 }
 
-                // 5 saniye sonra yeşil vurguyu kaldır
                 setTimeout(() => {
                     satir.classList.remove('yeni-gelen');
-                }, 5000);
+                }, 5000); // 5 saniye yanıp söner
             });
         }
     </script>
 
     <script>
-        // Ses Dosyası
-        let audio = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
+        // YENİ SES DOSYASI: Mekanik Saat Zili (Çok daha gürültülü)
+        let audio = new Audio('https://actions.google.com/sounds/v1/alarms/mechanic_clock_ring.ogg');
         
         function ekranDegistir(tip) {
             document.getElementById('giris-ekrani').classList.remove('aktif-ekran');
@@ -172,18 +168,25 @@
             }
         }
 
-        // Tarayıcıların otomatik sesi engellemesini aşmak için manuel onay
         function sesiAktifEt() {
+            audio.volume = 1.0; // Sesi fulle
             audio.play().then(() => { 
                 audio.pause(); 
                 audio.currentTime = 0; 
                 document.getElementById('ses-izni-btn').style.display = 'none';
-            }).catch(e => alert("Ses izni verilemedi, tarayıcı ayarlarını kontrol edin."));
+            }).catch(e => alert("Lütfen tarayıcı ayarlarından siteye 'Ses Çalma' izni verin."));
         }
 
-        function tekBipSesi() {
+        function gucluSesCal() {
             audio.currentTime = 0;
-            audio.play().catch(e => console.log("Ses çalma hatası:", e));
+            audio.volume = 1.0;
+            audio.play().catch(e => console.log("Ses hatası:", e));
+            
+            // GARANTİ OLSUN DİYE: 1.5 saniye sonra tekrar çal (Çift dikiş)
+            setTimeout(() => {
+                 audio.currentTime = 0;
+                 audio.play().catch(e => console.log("Ses hatası:", e));
+            }, 1500);
         }
     </script>
 </body>
